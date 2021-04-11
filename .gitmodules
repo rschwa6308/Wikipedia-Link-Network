@@ -1,0 +1,3 @@
+[submodule "Graph-Rendering"]
+	path = GraphRendering
+	url = https://github.com/rschwa6308/Graph-Rendering.git
