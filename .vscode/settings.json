@@ -66,6 +66,10 @@
         "unordered_map": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "numeric": "cpp",
+        "queue": "cpp",
+        "random": "cpp",
+        "filesystem": "cpp"
     }
 }

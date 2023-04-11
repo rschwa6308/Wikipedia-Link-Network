@@ -127,7 +127,7 @@ std::optional<std::vector<uint32_t>> shortest_path(uint32_t start, uint32_t goal
     SEARCHING = true;
     SEARCH_KILLED = false;
 
-    size_t num_searched = 0;
+    int num_searched = 0;
     bool goal_found = false;
     while (!queue.empty() && !goal_found && !SEARCH_KILLED) {
         uint32_t curr = queue.front();
@@ -181,6 +181,98 @@ std::optional<std::vector<uint32_t>> shortest_path(uint32_t start, uint32_t goal
     return std::vector(path.begin(), path.end());
 }
 
+// Iterative Deepening
+std::optional<std::vector<uint32_t>> shortest_path_IDS(uint32_t start, uint32_t goal) {
+    std::unordered_map<uint32_t, uint32_t> backlinks;       // keep track of the links we used to reconstruct path
+
+    std::stack<std::pair<uint32_t, int>> stack;             // store items as (ID, depth)
+
+    SEARCHING = true;
+    SEARCH_KILLED = false;
+
+    bool goal_found = false;
+    int depth = 1;
+    bool remaining = true;
+    while (!goal_found && remaining && !SEARCH_KILLED) {
+        // DFS with limited depth
+        std::cout << "Searching with depth limit: " << depth << std::endl;
+
+        stack = std::stack<std::pair<uint32_t, int>>();
+        backlinks.clear();
+
+        remaining = false;      // track whether we have bottomed out on depth
+        int num_searched = 0;
+        stack.push(std::pair(start, 0));
+        while (!stack.empty() && !goal_found && !SEARCH_KILLED) {
+            uint32_t curr = stack.top().first;
+            uint32_t curr_depth = stack.top().second;
+
+            // std::cout << curr << std::endl;
+            // std::cout << curr_depth << std::endl;
+
+            stack.pop();
+
+            if (curr_depth > depth) {
+                remaining = true;
+                continue;
+            }
+
+            std::list<uint32_t> links = GRAPH[curr];
+            for (uint32_t link : links) {
+                // skip link if it has already been visited
+                if (backlinks.find(link) != backlinks.end()) { continue; }
+
+                // record the back-link
+                backlinks[link] = curr;
+
+                // terminate early if we found the goal
+                if (link == goal) {
+                    goal_found = true;
+                    break;
+                }
+
+                stack.push(std::pair(link, curr_depth+1));
+
+                num_searched++;
+                if (num_searched % 1000000 == 0) {
+                    std::cout << "\tpages searched: " << num_searched << std::endl;
+                }
+            }
+
+        }
+        std::cout << "\tpages searched: " << num_searched << std::endl;
+        depth++;
+
+        // if the search terminated because we 
+        if (stack.empty()) {
+            break;
+        }
+    }
+
+    SEARCHING = false;
+
+    if (SEARCH_KILLED) {
+        std::cout << "(search killed by user)" << std::endl;
+        return std::nullopt;
+    }
+
+    if (!goal_found) {
+        return std::nullopt;
+    }
+
+    // Reconstruct path
+    std::list<uint32_t> path;
+
+    uint32_t curr = goal;
+    while (curr != start) {
+        path.push_front(curr);
+        curr = backlinks[curr];
+    }
+    path.push_front(start);
+
+    return std::vector(path.begin(), path.end());
+}
+
 
 void play_wiki_game(std::string start_title, std::string goal_title) {
     std::cout << "Finding shortest path from \"" << start_title << "\" to \"" << goal_title << "\" . . ." << std::endl;
@@ -198,6 +290,7 @@ void play_wiki_game(std::string start_title, std::string goal_title) {
 
     auto t1 = std::chrono::high_resolution_clock::now();
     auto result = shortest_path(start, goal);
+    // auto result = shortest_path_IDS(start, goal);
     auto t2 = std::chrono::high_resolution_clock::now();
 
     auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
