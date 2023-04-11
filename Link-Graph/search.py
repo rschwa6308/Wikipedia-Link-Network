@@ -1,11 +1,14 @@
 from collections import defaultdict, deque
 from queue import Queue
 import numpy as np
+import heapq
+from functools import partial
 
 
 # module-level globals (to be filled in by caller)
-GRAPH = None
+GRAPH, TRANSPOSE_GRAPH = None, None
 TITLES_TO_IDS, IDS_TO_TILES = None, None
+
 
 
 
@@ -55,7 +58,6 @@ def shortest_path_BFS_id(start, goal, disallow=[], print_progress=True):
                 if len(backlinks) % 500_000 == 0:
                     print("\tSearched:", len(backlinks))
                 
-
 
 
 def shortest_path_IDS_id(start, goal, disallow=[], print_progress=True):
@@ -117,9 +119,6 @@ def shortest_path_IDS_id(start, goal, disallow=[], print_progress=True):
 
 
 
-import heapq
-
-
 def shortest_path_ASTAR_id(start, goal, heuristic, disallow=[], print_progress=True):
     "A* Search from start page ID to goal page ID"
 
@@ -158,8 +157,58 @@ def shortest_path_ASTAR_id(start, goal, heuristic, disallow=[], print_progress=T
                     open_set_mirror.add(link)
 
 
-from heuristics import *
-from functools import partial
+
+def dummy_heuristic(start, goal, curr):
+    return 0
+
+
+
+
+LANDMARK_DISTANCES = {}
+
+def compute_landmark_distances(landmarks):
+
+    for landmark in landmarks:
+        print(f"Computing distances to landmark: {IDS_TO_TILES[landmark]}")
+        max_dist = -1
+
+        distances = {}
+
+        distances[landmark] = 0
+
+        # BFS from the landmark outwards in the transpose graph
+        queue = Queue()
+        queue.put(landmark)
+        
+        while not queue.empty():
+            curr = queue.get()
+
+            if distances[curr] > max_dist:
+                max_dist = distances[curr]
+                print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
+
+            for link in TRANSPOSE_GRAPH[curr]:
+                if link in distances:
+                    continue
+
+                distances[link] = distances[curr] + 1
+
+                queue.put(link)
+
+                if len(distances) % 1_000_000 == 0:
+                    print(len(distances))
+        
+        LANDMARK_DISTANCES[landmark] = distances
+
+
+
+def dist(curr, landmark):
+    "look up the precomputed exact distance from curr to landmark"
+    return LANDMARK_DISTANCES[landmark][curr]
+
+
+def landmarks_heuristic(start, goal, curr):
+    return max(dist(start, landmark) - dist(goal, landmark) for landmark in LANDMARK_DISTANCES)
 
 
 def shortest_path(start, goal, disallow=[], print_progress=True, method="BFS"):
@@ -169,7 +218,8 @@ def shortest_path(start, goal, disallow=[], print_progress=True, method="BFS"):
     method_map = {
         "BFS": shortest_path_BFS_id,
         "IDS": shortest_path_IDS_id,
-        "A* dummy": partial(shortest_path_ASTAR_id, heuristic=dummy_heuristic)
+        "A* dummy": partial(shortest_path_ASTAR_id, heuristic=dummy_heuristic),
+        "A* landmarks": partial(shortest_path_ASTAR_id, heuristic=landmarks_heuristic),
     }
 
     if method not in method_map:

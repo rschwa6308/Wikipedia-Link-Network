@@ -1,5 +1,22 @@
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+
+
+
+def build_transpose_graph(GRAPH):
+    TRANSPOSE_GRAPH = {}
+
+    for page in GRAPH:
+        TRANSPOSE_GRAPH[page] = []
+
+    for page in tqdm(GRAPH, desc="Building Transpose Graph"):
+        for link in GRAPH[page]:
+            TRANSPOSE_GRAPH[link].append(page)
+
+    return TRANSPOSE_GRAPH
+ 
+
 
 
 def fetch_page_html(page_title):
