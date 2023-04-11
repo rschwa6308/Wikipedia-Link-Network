@@ -1,14 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-
+import numpy as np
 
 
 def build_transpose_graph(GRAPH):
     TRANSPOSE_GRAPH = {}
 
-    for page in GRAPH:
-        TRANSPOSE_GRAPH[page] = []
+    for page in tqdm(GRAPH, desc="Initializing Transpose Graph"):
+        TRANSPOSE_GRAPH[page] = np.array(dtype=np.uint32)
 
     for page in tqdm(GRAPH, desc="Building Transpose Graph"):
         for link in GRAPH[page]:

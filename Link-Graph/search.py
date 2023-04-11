@@ -163,17 +163,54 @@ def dummy_heuristic(start, goal, curr):
 
 
 
+# Landmarks Heuristic:
+# https://www.cs.princeton.edu/courses/archive/spr06/cos423/Handouts/GH05.pdf
 
-LANDMARK_DISTANCES = {}
+
+TO_LANDMARK_DISTANCES = {}
+FROM_LANDMARK_DISTANCES = {}
 
 def compute_landmark_distances(landmarks):
 
     for landmark in landmarks:
+        print(f"Computing distances from landmark: {IDS_TO_TILES[landmark]}")
+        max_dist = -1
+
+        distances = {}
+        distances[landmark] = 0
+
+        # BFS from the landmark outwards in the original graph
+        queue = Queue()
+        queue.put(landmark)
+        
+        while not queue.empty():
+            curr = queue.get()
+
+            if distances[curr] > max_dist:
+                max_dist = distances[curr]
+                print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
+            
+            # print(IDS_TO_TILES[curr], GRAPH[curr])
+
+            for link in GRAPH[curr]:
+                # print(link)
+                if link in distances:
+                    continue
+
+                distances[link] = distances[curr] + 1
+
+                queue.put(link)
+
+                if len(distances) % 1_000_000 == 0:
+                    print(len(distances))
+        
+        FROM_LANDMARK_DISTANCES[landmark] = distances
+
+
         print(f"Computing distances to landmark: {IDS_TO_TILES[landmark]}")
         max_dist = -1
 
         distances = {}
-
         distances[landmark] = 0
 
         # BFS from the landmark outwards in the transpose graph
@@ -198,17 +235,31 @@ def compute_landmark_distances(landmarks):
                 if len(distances) % 1_000_000 == 0:
                     print(len(distances))
         
-        LANDMARK_DISTANCES[landmark] = distances
+        TO_LANDMARK_DISTANCES[landmark] = distances
 
 
 
-def dist(curr, landmark):
+def dist_to_landmark(curr, landmark):
     "look up the precomputed exact distance from curr to landmark"
-    return LANDMARK_DISTANCES[landmark][curr]
+    return TO_LANDMARK_DISTANCES[landmark].get(curr, 9999999)
+
+
+def dist_from_landmark(curr, landmark):
+    "look up the precomputed exact distance from landmark to curr"
+    return FROM_LANDMARK_DISTANCES[landmark].get(curr, 9999999)
 
 
 def landmarks_heuristic(start, goal, curr):
-    return max(dist(start, landmark) - dist(goal, landmark) for landmark in LANDMARK_DISTANCES)
+    vals = []
+
+    for landmark in TO_LANDMARK_DISTANCES:
+        vals.append(dist_to_landmark(curr, landmark) - dist_to_landmark(goal, landmark))
+    
+    for landmark in FROM_LANDMARK_DISTANCES:
+        vals.append(dist_from_landmark(goal, landmark) - dist_to_landmark(curr, landmark))
+
+    return max(vals)
+
 
 
 def shortest_path(start, goal, disallow=[], print_progress=True, method="BFS"):
