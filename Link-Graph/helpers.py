@@ -8,11 +8,14 @@ def build_transpose_graph(GRAPH):
     TRANSPOSE_GRAPH = {}
 
     for page in tqdm(GRAPH, desc="Initializing Transpose Graph"):
-        TRANSPOSE_GRAPH[page] = np.array(dtype=np.uint32)
+        TRANSPOSE_GRAPH[page] = []
 
     for page in tqdm(GRAPH, desc="Building Transpose Graph"):
         for link in GRAPH[page]:
             TRANSPOSE_GRAPH[link].append(page)
+    
+    for page in tqdm(GRAPH, desc="Finishing Transpose Graph"):
+        TRANSPOSE_GRAPH[page] = np.array(TRANSPOSE_GRAPH[page], dtype=np.uint32)
 
     return TRANSPOSE_GRAPH
  
