@@ -167,75 +167,88 @@ def dummy_heuristic(start, goal, curr):
 # https://www.cs.princeton.edu/courses/archive/spr06/cos423/Handouts/GH05.pdf
 
 
-TO_LANDMARK_DISTANCES = {}
-FROM_LANDMARK_DISTANCES = {}
+# TO_LANDMARK_DISTANCES = {}
+# FROM_LANDMARK_DISTANCES = {}
 
-def compute_landmark_distances(landmarks):
+# def compute_landmark_distances(landmarks):
 
-    for landmark in landmarks:
-        print(f"Computing distances from landmark: {IDS_TO_TILES[landmark]}")
-        max_dist = -1
+#     for landmark in landmarks:
+#         print(f"Computing distances from landmark: {IDS_TO_TILES[landmark]}")
+#         max_dist = -1
 
-        distances = {}
-        distances[landmark] = 0
+#         distances = {}
+#         distances[landmark] = 0
 
-        # BFS from the landmark outwards in the original graph
-        queue = Queue()
-        queue.put(landmark)
+#         # BFS from the landmark outwards in the original graph
+#         queue = Queue()
+#         queue.put(landmark)
         
-        while not queue.empty():
-            curr = queue.get()
+#         while not queue.empty():
+#             curr = queue.get()
 
-            if distances[curr] > max_dist:
-                max_dist = distances[curr]
-                print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
+#             if distances[curr] > max_dist:
+#                 max_dist = distances[curr]
+#                 print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
             
-            # print(IDS_TO_TILES[curr], GRAPH[curr])
+#             # print(IDS_TO_TILES[curr], GRAPH[curr])
 
-            for link in GRAPH[curr]:
-                # print(link)
-                if link in distances:
-                    continue
+#             for link in GRAPH[curr]:
+#                 # print(link)
+#                 if link in distances:
+#                     continue
 
-                distances[link] = distances[curr] + 1
+#                 distances[link] = distances[curr] + 1
 
-                queue.put(link)
+#                 queue.put(link)
 
-                if len(distances) % 1_000_000 == 0:
-                    print(len(distances))
+#                 if len(distances) % 1_000_000 == 0:
+#                     print(len(distances))
         
-        FROM_LANDMARK_DISTANCES[landmark] = distances
+#         FROM_LANDMARK_DISTANCES[landmark] = distances
 
 
-        print(f"Computing distances to landmark: {IDS_TO_TILES[landmark]}")
-        max_dist = -1
+#         print(f"Computing distances to landmark: {IDS_TO_TILES[landmark]}")
+#         max_dist = -1
 
-        distances = {}
-        distances[landmark] = 0
+#         distances = {}
+#         distances[landmark] = 0
 
-        # BFS from the landmark outwards in the transpose graph
-        queue = Queue()
-        queue.put(landmark)
+#         # BFS from the landmark outwards in the transpose graph
+#         queue = Queue()
+#         queue.put(landmark)
         
-        while not queue.empty():
-            curr = queue.get()
+#         while not queue.empty():
+#             curr = queue.get()
 
-            if distances[curr] > max_dist:
-                max_dist = distances[curr]
-                print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
+#             if distances[curr] > max_dist:
+#                 max_dist = distances[curr]
+#                 print(f"depth: {max_dist} ({IDS_TO_TILES[curr]})")
 
-            for link in TRANSPOSE_GRAPH[curr]:
-                if link in distances:
-                    continue
+#             for link in TRANSPOSE_GRAPH[curr]:
+#                 if link in distances:
+#                     continue
 
-                distances[link] = distances[curr] + 1
+#                 distances[link] = distances[curr] + 1
 
-                queue.put(link)
+#                 queue.put(link)
 
-                if len(distances) % 1_000_000 == 0:
-                    print(len(distances))
+#                 if len(distances) % 1_000_000 == 0:
+#                     print(len(distances))
         
-        TO_LANDMARK_DISTANCES[landmark] = distances
+#         TO_LANDMARK_DISTANCES[landmark] = distances
+
+
+LANDMARKS = None
+FROM_LANDMARK_DISTANCES = None
+TO_LANDMARK_DISTANCES = None
+
+def load_landmark_distances():
+    global LANDMARKS, FROM_LANDMARK_DISTANCES, TO_LANDMARK_DISTANCES
+    data = np.load("landmarks.npz")
+    LANDMARKS = data["landmarks"]
+    FROM_LANDMARK_DISTANCES = data["from_distances"]
+    TO_LANDMARK_DISTANCES = data["to_distances"]
+    data.close()
 
 
 
@@ -250,15 +263,29 @@ def dist_from_landmark(curr, landmark):
 
 
 def landmarks_heuristic(start, goal, curr):
-    vals = []
+    curr_to_landmarks = TO_LANDMARK_DISTANCES[:, curr]
+    goal_to_landmarks = TO_LANDMARK_DISTANCES[:, goal]
 
-    for landmark in TO_LANDMARK_DISTANCES:
-        vals.append(dist_to_landmark(curr, landmark) - dist_to_landmark(goal, landmark))
+    # curr_from_landmarks = FROM_LANDMARK_DISTANCES[:, curr]
+    # goal_from_landmarks = FROM_LANDMARK_DISTANCES[:, goal]
+
+    val = np.nanmax(curr_to_landmarks - goal_to_landmarks)
+    return val
+
+    # return max(
+    #     np.nanmax(curr_to_landmarks - goal_to_landmarks),
+    #     np.nanmax(goal_from_landmarks - curr_from_landmarks)
+    # )
+
+    # vals = []
+
+    # for landmark_index in TO_LANDMARK_DISTANCES:
+    #     vals.append(dist_to_landmark(curr, landmark) - dist_to_landmark(goal, landmark))
     
-    for landmark in FROM_LANDMARK_DISTANCES:
-        vals.append(dist_from_landmark(goal, landmark) - dist_to_landmark(curr, landmark))
+    # for landmark in FROM_LANDMARK_DISTANCES:
+    #     vals.append(dist_from_landmark(goal, landmark) - dist_from_landmark(curr, landmark))
 
-    return max(vals)
+    # return max(vals)
 
 
 
